@@ -1,7 +1,14 @@
+const EmailTemplate = require("./models/EmailTemplate");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 const express = require("express");
 const app = express();
+const cors = require("cors");
+const mongoose = require("mongoose");
+
+app.use(cors());
+app.use(express.json());
+
 const PORT = 5000;
 
 app.get('/', (req, res) => {
@@ -42,7 +49,52 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-app.listen(PORT, () =>{
-    console.log(`Server is running on port ${PORT}`);
+
+async function startServer() {
+    try {
+        await mongoose.connect(process.env.MONGO_URI, {
+            dbName: "react_mailer"
+        });
+
+        console.log("MongoDB Atlas connected successfully");
+
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error("MongoDB connection failed:", error.message);
+        process.exit(1);
+    }
+}
+
+app.post("/api/templates", async (req, res) => {
+    try {
+        const { title, html } = req.body;
+
+        if(!title || !html) {
+            return res.status(400).json({
+                message: "Title & HTML are required"
+            });
+        }
+
+        const template = await EmailTemplate.create({
+            title,
+            html
+        });
+
+        res.status(201).json({
+            message: "Template saved successfully",
+            template
+        });
+    } catch (error) {
+        console.error("Error saving template:", error.message);
+
+        res.status(500).json({
+            message: "Failed to save template"
+        });
+    }
 });
+
+startServer();
+
 
