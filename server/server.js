@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
 });
 
 app.post("/api/send-email", async (req, res) =>{
-    const userEmail = "hosbein1b85f4@cc.nexushint.com";
+    const userEmail = "valaree1cbd7a@kg.nexushint.com";
     const subject = "Subject test";
     const text = "This is a test email from my React mailer project.";
 
@@ -170,6 +170,8 @@ app.post("/api/templates", async (req, res) => {
             <body style="font-family: Arial, sans-serif; color: #0f172a;">
                 <h2>${heading}</h2>
                 <p>${bodyText}</p>
+                <p>Order number: {{orderNumber}}</p>
+                <p>Order total: ₹{{orderTotal}}</p>
                 <a href="{{orderUrl}}"
                    style="display: inline-block; padding: 12px 18px;
                           background-color: ${buttonColor};
