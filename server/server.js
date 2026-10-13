@@ -50,6 +50,76 @@ const transporter = nodemailer.createTransport({
 });
 
 
+app.post("/api/test-order-confirmation", async (req, res) => {
+    try {
+        const {
+            customerEmail,
+            customerName,
+            orderNumber,
+            orderTotal,
+            orderUrl
+        } = req.body;
+
+        if (
+            !customerEmail ||
+            !customerName ||
+            !orderNumber ||
+            orderTotal === undefined ||
+            !orderUrl
+        ) {
+            return res.status(400).json({
+                message: "All order details are required"
+            });
+        }
+
+        const template = await EmailTemplate.findOne({
+            trigger: "order_placed"
+        });
+
+        if (!template) {
+            return res.status(404).json({
+                message: "Order confirmation template not found"
+            });
+        }
+
+        const replacements = {
+            customerName,
+            orderNumber,
+            orderTotal: String(orderTotal),
+            orderUrl
+        };
+
+        const replaceVariables = (content) =>
+            content.replace(
+                /\{\{(customerName|orderNumber|orderTotal|orderUrl)\}\}/g,
+                (_, key) => replacements[key]
+            );
+
+        const html = replaceVariables(template.html);
+        const subject = replaceVariables(template.subject);
+
+        const result = await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: customerEmail,
+            subject,
+            html
+        });
+
+        res.json({
+            message: "Order confirmation email sent",
+            messageId: result.messageId
+        });
+    } catch (error) {
+        console.error("Order email error:", error.message);
+
+        res.status(500).json({
+            message: "Failed to send order confirmation email"
+        });
+    }
+});
+
+
+
 async function startServer() {
     try {
         await mongoose.connect(process.env.MONGO_URI, {
@@ -67,22 +137,71 @@ async function startServer() {
     }
 }
 
+
 app.post("/api/templates", async (req, res) => {
     try {
-        const { title, html } = req.body;
+        const {
+            title,
+            trigger,
+            subject,
+            heading,
+            bodyText,
+            buttonText,
+            buttonColor
+        } = req.body;
 
-        if(!title || !html) {
+        if (
+            !title ||
+            !trigger ||
+            !subject ||
+            !heading ||
+            !bodyText ||
+            !buttonText ||
+            !buttonColor
+        ) {
             return res.status(400).json({
-                message: "Title & HTML are required"
+                message: "All template fields are required"
             });
         }
 
-        const template = await EmailTemplate.create({
-            title,
-            html
-        });
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; color: #0f172a;">
+                <h2>${heading}</h2>
+                <p>${bodyText}</p>
+                <a href="{{orderUrl}}"
+                   style="display: inline-block; padding: 12px 18px;
+                          background-color: ${buttonColor};
+                          color: #ffffff; text-decoration: none;
+                          border-radius: 6px;">
+                    ${buttonText}
+                </a>
+            </body>
+            </html>
+        `;
 
-        res.status(201).json({
+        const template = await EmailTemplate.findOneAndUpdate(
+            { trigger },
+            {
+                title,
+                trigger,
+                subject,
+                heading,
+                bodyText,
+                buttonText,
+                buttonColor,
+                html
+            },
+            {
+                new: true,
+                upsert: true,
+                runValidators: true,
+                setDefaultsOnInsert: true
+            }
+        );
+
+        res.status(200).json({
             message: "Template saved successfully",
             template
         });
@@ -94,6 +213,7 @@ app.post("/api/templates", async (req, res) => {
         });
     }
 });
+
 
 startServer();
 
