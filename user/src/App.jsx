@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
 import './App.css'
+import jsPDF from 'jspdf'
 
 function App() {
   const [title, setTitle] = useState('Order Confirmation')
@@ -47,6 +48,70 @@ const handleSave = async () => {
         setMessage(error.message || 'Could not save template.')
     }
 }
+
+
+const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
+    let y = 25;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text(title, margin, y);
+    y += 15;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`Subject: ${subject}`, margin, y, {
+        maxWidth: contentWidth
+    });
+    y += 15;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+
+    const headingLines = doc.splitTextToSize(
+        heading.replace("{{customerName}}", "Customer Name"),
+        contentWidth
+    );
+    doc.text(headingLines, margin, y);
+    y += headingLines.length * 8 + 5;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+
+    const bodyLines = doc.splitTextToSize(
+        bodyText,
+        contentWidth
+    );
+    doc.text(bodyLines, margin, y);
+    y += bodyLines.length * 7 + 12;
+
+    doc.text("Order number: ORD-1024", margin, y);
+    y += 8;
+    doc.text("Order total: Rs. 1,499", margin, y);
+    y += 15;
+
+    const hex = buttonColor.replace("#", "");
+    const red = parseInt(hex.substring(0, 2), 16);
+    const green = parseInt(hex.substring(2, 4), 16);
+    const blue = parseInt(hex.substring(4, 6), 16);
+
+    doc.setFillColor(red, green, blue);
+    doc.roundedRect(margin, y, 55, 12, 2, 2, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text(buttonText, margin + 5, y + 7.5, {
+        maxWidth: 45
+    });
+
+    doc.save("order-confirmation-template.pdf");
+};
+
 
 
   return (
@@ -107,6 +172,12 @@ const handleSave = async () => {
           <button type="button" onClick={handleSave}>
             Save Template
           </button>
+
+          
+          <button onClick={handleDownloadPDF}>
+              Download PDF
+          </button>
+
 
           <p role="status">{message}</p>
         </section>
