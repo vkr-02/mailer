@@ -2,6 +2,8 @@
 import { useState } from 'react'
 import './App.css'
 import jsPDF from 'jspdf'
+import Modal from './components/Modal'
+
 
 function App() {
   const [title, setTitle] = useState('Order Confirmation')
@@ -13,6 +15,12 @@ function App() {
   const [buttonText, setButtonText] = useState('View Your Order')
   const [buttonColor, setButtonColor] = useState('#2563eb')
   const [message, setMessage] = useState('')
+
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const toggleModal = () => {
+    setIsModalOpen(true);
+  }
 
   
 const handleSave = async () => {
@@ -206,6 +214,13 @@ const handleDownloadPDF = () => {
             </button>
           </article>
         </section>
+
+        <div>
+          <h3>Click on the button to open modal</h3>
+          <button onClick={toggleModal}>Open</button>
+
+          {isModalOpen && (<Modal onClose={() => setIsModalOpen(false)} />)}
+        </div>
       </div>
     </main>
   )
